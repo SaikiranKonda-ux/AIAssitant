@@ -8,6 +8,7 @@ def summarize(
     cleaned_contents: Annotated[List[CleanedContent], "List of cleaned content to summarize"],
     original_query: Annotated[str, "Original user query"],
     azure_client: Annotated[AzureOpenAI, "Azure OpenAI client instance"],
+    deployment_name: Annotated[str, "Azure OpenAI deployment name"],
     confidence_threshold: Annotated[float, "Minimum confidence for inclusion"] = 0.7
 ) -> FinalReport:
     """
@@ -57,7 +58,7 @@ Create a final report. Return JSON with:
 Deduplicate information across sources. Rank by relevance."""
 
     response = azure_client.chat.completions.create(
-        model="gpt-4",
+        model=deployment_name,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}

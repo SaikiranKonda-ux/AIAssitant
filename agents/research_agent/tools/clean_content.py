@@ -6,7 +6,8 @@ from ..models.schemas import FetchedContent, CleanedContent
 def clean_content(
     fetched_content: Annotated[FetchedContent, "Fetched content to clean"],
     original_query: Annotated[str, "Original user query for filtering relevance"],
-    azure_client: Annotated[AzureOpenAI, "Azure OpenAI client instance"]
+    azure_client: Annotated[AzureOpenAI, "Azure OpenAI client instance"],
+    deployment_name: Annotated[str, "Azure OpenAI deployment name"]
 ) -> CleanedContent:
     """
     Use LLM to remove noise and extract only relevant information from content
@@ -47,7 +48,7 @@ Extract relevant information and return JSON with:
 If content is not relevant, return confidence < 0.5."""
 
     response = azure_client.chat.completions.create(
-        model="gpt-4",
+        model=deployment_name,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}

@@ -44,6 +44,7 @@ class ResearchAgent:
         self.confidence_threshold = confidence_threshold
 
         config_dict = self.config.get_client_config()
+        self.deployment_name = config_dict["deployment_name"]
         self.azure_client = AzureOpenAI(
             api_key=config_dict["api_key"],
             api_version=config_dict["api_version"],
@@ -88,12 +89,10 @@ class ResearchAgent:
         return final_report
 
     def _formulate_queries(self, user_query: str) -> QueryFormulations:
-        """
-        Step 1: Generate 3-5 search interpretations
-        """
         return formulate_queries(
             user_query=user_query,
             azure_client=self.azure_client,
+            deployment_name=self.deployment_name,
             num_interpretations=self.num_interpretations
         )
 
@@ -128,6 +127,7 @@ class ResearchAgent:
                 search_results=sr,
                 original_query=original_query,
                 azure_client=self.azure_client,
+                deployment_name=self.deployment_name,
                 max_urls=self.max_urls_per_interpretation
             )
             tasks.append(task)
@@ -169,7 +169,8 @@ class ResearchAgent:
                     clean_content,
                     fetched_content=content,
                     original_query=original_query,
-                    azure_client=self.azure_client
+                    azure_client=self.azure_client,
+                    deployment_name=self.deployment_name
                 )
                 tasks.append(task)
 
@@ -190,6 +191,7 @@ class ResearchAgent:
             cleaned_contents=cleaned_contents,
             original_query=original_query,
             azure_client=self.azure_client,
+            deployment_name=self.deployment_name,
             confidence_threshold=self.confidence_threshold
         )
 

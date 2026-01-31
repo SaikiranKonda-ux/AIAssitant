@@ -6,6 +6,7 @@ from ..models.schemas import QueryFormulations, SearchInterpretation
 def formulate_queries(
     user_query: Annotated[str, "Original user query to reformulate"],
     azure_client: Annotated[AzureOpenAI, "Azure OpenAI client instance"],
+    deployment_name: Annotated[str, "Azure OpenAI deployment name"],
     num_interpretations: Annotated[int, "Number of interpretations to generate"] = 3
 ) -> QueryFormulations:
     """
@@ -26,7 +27,7 @@ Return a JSON object with:
   - interpretation_id: unique number 0 to {num_interpretations-1}"""
 
     response = azure_client.chat.completions.create(
-        model="gpt-4",
+        model=deployment_name,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}

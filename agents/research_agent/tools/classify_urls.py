@@ -7,6 +7,7 @@ def classify_urls(
     search_results: Annotated[SearchResults, "Search results to classify"],
     original_query: Annotated[str, "Original user query for relevance assessment"],
     azure_client: Annotated[AzureOpenAI, "Azure OpenAI client instance"],
+    deployment_name: Annotated[str, "Azure OpenAI deployment name"],
     max_urls: Annotated[int, "Maximum URLs to select"] = 2
 ) -> ClassifiedURLs:
     """
@@ -44,7 +45,7 @@ Select up to {max_urls} most relevant URLs. Return JSON with:
 Return empty selected array if no URLs meet threshold 0.7."""
 
     response = azure_client.chat.completions.create(
-        model="gpt-4",
+        model=deployment_name,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
