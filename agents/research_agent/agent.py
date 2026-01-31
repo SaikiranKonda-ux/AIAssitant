@@ -7,7 +7,7 @@ from openai import AzureOpenAI
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from config.azure_config import AzureOpenAIConfig
-from .models.schemas import (
+from agents.research_agent.models.schemas import (
     QueryFormulations,
     SearchResults,
     ClassifiedURLs,
@@ -15,7 +15,7 @@ from .models.schemas import (
     CleanedContent,
     FinalReport
 )
-from .tools import (
+from agents.research_agent.tools import (
     formulate_queries,
     search_web,
     classify_urls,
