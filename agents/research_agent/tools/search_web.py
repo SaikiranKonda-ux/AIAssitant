@@ -1,5 +1,5 @@
 from typing import Annotated
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 from ..models.schemas import SearchResults, URLResult
 
 

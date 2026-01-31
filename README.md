@@ -3,7 +3,7 @@
 ## Installation
 
 ```bash
-pip install openai duckduckgo-search requests beautifulsoup4 pydantic
+pip install openai ddgs requests beautifulsoup4 pydantic
 ```
 
 ## Setup

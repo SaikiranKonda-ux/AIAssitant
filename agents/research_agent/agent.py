@@ -1,6 +1,11 @@
 import asyncio
+import sys
+from pathlib import Path
 from typing import List, Optional
 from openai import AzureOpenAI
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
 from config.azure_config import AzureOpenAIConfig
 from .models.schemas import (
     QueryFormulations,
