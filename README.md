@@ -1,4 +1,4 @@
-# Multi-Interpretation Research Agent
+# AI Assistant Agents
 
 ## Installation
 
@@ -79,4 +79,124 @@ agents/
           └── schemas.py              # Pydantic models
 config/
   └── azure_config.py                 # Azure OpenAI setup
+```
+
+---
+
+# Code Understanding Agent
+
+## Pattern: Planner-Executor with Map-Reduce Concurrent Orchestration
+
+## Installation
+
+```bash
+pip install openai pydantic
+```
+
+## Usage
+
+```python
+import asyncio
+from agents.code_understanding_agent import CodeUnderstandingAgent
+
+async def main():
+    agent = CodeUnderstandingAgent(
+        max_concurrent_bundles=5,
+        max_lines_per_bundle=2000
+    )
+
+    result = await agent.analyze(
+        project_path="/path/to/your/project",
+        user_request="Understand authentication module"
+    )
+
+    print(f"Project: {result.project_name}")
+    print(f"Summary: {result.summary}")
+    print(f"Bundles analyzed: {result.total_bundles_analyzed}")
+
+asyncio.run(main())
+```
+
+## Architecture: Planner-Executor + Map-Reduce
+
+### PLANNER MODULE
+```
+1. imports_understanding (cached or generated)
+2. file_search (intelligent, uses imports)
+3. request_classifier (LLM: scope determination)
+4. user_permission_gate (>20 files)
+5. create_metadata (file stats)
+6. bundle_planner (LLM: ≤2000 lines per bundle)
+```
+
+### EXECUTOR MODULE - MAP PHASE
+```
+Parallel bundle processing:
+- read_bundle (concurrent)
+- analyze_bundle (LLM, batched 5 at a time)
+```
+
+### EXECUTOR MODULE - REDUCE PHASE
+```
+- synthesize (LLM: aggregate all bundles)
+- write central_understanding.md
+```
+
+## Supported File Types
+
+```python
+.py    → Extract imports (AST parsing)
+.ipynb → Code cells only
+.toml  → All lines
+.yml   → All lines
+.sql   → All lines
+```
+
+## Output Structure
+
+```
+project_root/
+  └── agent_knowledge/
+      ├── imports_understanding.md
+      ├── bundle_auth_module.md
+      ├── bundle_database.md
+      ├── central_understanding.md
+```
+
+## Key Features
+
+**Intelligent Bundling**
+- LLM enforces 2000-line constraint
+- Groups related files by imports
+- Splits large files into parts
+
+**User Control**
+- Permission gate for >20 Python files
+- Shows estimated time & cost
+- Cancel before analysis starts
+
+**Function-Level Analysis**
+- Control flows (if/else, loops)
+- Business rules (validation, auth)
+- Cross-module dependencies
+
+## File Structure
+
+```
+agents/
+  └── code_understanding_agent/
+      ├── agent.py                    # Planner-Executor orchestrator
+      ├── tools/
+      │   ├── extract_imports.py      # AST parsing
+      │   ├── generate_diagram.py     # LLM: Mermaid diagrams
+      │   ├── file_search.py          # Filter by imports
+      │   ├── request_classifier.py   # LLM: scope detection
+      │   ├── create_metadata.py      # File stats
+      │   ├── bundle_planner.py       # LLM: 2000-line bundles
+      │   ├── read_bundle.py          # File I/O
+      │   ├── analyze_bundle.py       # LLM: function analysis
+      │   ├── synthesize.py           # LLM: aggregation
+      │   └── write_markdown.py       # .md file writer
+      └── models/
+          └── schemas.py              # Pydantic models
 ```
