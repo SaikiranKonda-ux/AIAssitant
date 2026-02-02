@@ -200,3 +200,131 @@ agents/
       └── models/
           └── schemas.py              # Pydantic models
 ```
+
+---
+
+# Planning Agent
+
+## Pattern: Sequential Workflow + Handoff + Human-in-the-Loop (HITL)
+
+## Installation
+
+```bash
+pip install openai pydantic
+```
+
+## Usage
+
+```python
+import asyncio
+from agents.planning_agent import PlanningAgent
+
+async def main():
+    agent = PlanningAgent()
+
+    plan = await agent.analyze_requirement(
+        requirement_text="Add user authentication with OAuth",
+        code_directory="/path/to/your/project"
+    )
+
+    print(f"Requirement: {plan.requirement_text}")
+    print(f"Type: {plan.requirement_type}")
+    print(f"Affected files: {len(plan.affected_files)}")
+    print(f"Steps: {len(plan.steps)}")
+
+asyncio.run(main())
+```
+
+## Architecture: Sequential + Handoff + HITL
+
+### PHASE 1: Codebase Context
+```
+1. load_codebase_context (loads agent_knowledge/)
+2. [HANDOFF] Trigger CodeUnderstandingAgent if needed
+3. [HITL] User confirms to run analysis
+```
+
+### PHASE 2: Requirement Classification
+```
+4. requirement_analyzer (LLM: classify requirement)
+   - NEW_FEATURE_FROM_SCRATCH
+   - MODIFY_EXISTING_CODE
+   - NEW_FEATURE_WITH_INTEGRATION
+   - UNDERSTAND_SPECIFIC_FILES
+5. [HITL] ambiguity_resolver (interactive prompts)
+```
+
+### PHASE 3: Planning
+```
+6. [HITL] discussion_facilitator (for new features)
+7. plan_generator (LLM: detailed implementation plan)
+8. write_markdown (save to agent_planning/)
+```
+
+## Requirement Types
+
+**NEW_FEATURE_FROM_SCRATCH**
+- No existing code for this feature
+- Requires architecture discussion
+- Interactive tech stack choices
+
+**MODIFY_EXISTING_CODE**
+- Changes to existing functionality
+- Identifies affected files
+- Plans refactoring steps
+
+**NEW_FEATURE_WITH_INTEGRATION**
+- New feature connecting to existing code
+- Maps integration points
+- Plans compatibility changes
+
+**UNDERSTAND_SPECIFIC_FILES**
+- Analysis request for specific files
+- Handoff to CodeUnderstandingAgent
+- No implementation planning
+
+## Output Structure
+
+```
+project_root/
+  └── agent_planning/
+      ├── requirements/
+      │   └── requirement_<hash>.md
+      ├── classifications/
+      │   └── classification_<hash>.md
+      └── plans/
+          └── plan_<hash>.md
+```
+
+## Key Features
+
+**Interactive Ambiguity Resolution**
+- LLM identifies unclear points
+- Chain-of-thought reasoning displayed
+- User provides clarifications inline
+
+**Handoff Mechanism**
+- Detects missing agent_knowledge/
+- Triggers CodeUnderstandingAgent
+- Waits for codebase analysis completion
+
+**Context-Aware Planning**
+- Reuses imports_understanding.md
+- References central_understanding.md
+- Plans based on existing architecture
+
+## File Structure
+
+```
+agents/
+  └── planning_agent/
+      ├── agent.py                         # Sequential orchestrator
+      ├── tools/
+      │   ├── requirement_analyzer.py      # LLM: classification
+      │   ├── ambiguity_resolver.py        # HITL: interactive
+      │   ├── codebase_context_manager.py  # Load agent_knowledge/
+      │   ├── plan_generator.py            # LLM: implementation plan
+      │   └── discussion_facilitator.py    # HITL: new feature dialog
+      └── models/
+          └── schemas.py                   # Pydantic models
+```
