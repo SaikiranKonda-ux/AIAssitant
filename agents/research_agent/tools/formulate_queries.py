@@ -1,6 +1,11 @@
+import sys
+from pathlib import Path
 from typing import Annotated
 from openai import AzureOpenAI
-from ..models.schemas import QueryFormulations, SearchInterpretation
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+from config.prompts import ResearchAgentPrompts
+from agents.research_agent.models.schemas import QueryFormulations, SearchInterpretation
 
 
 def formulate_queries(
@@ -9,22 +14,13 @@ def formulate_queries(
     deployment_name: Annotated[str, "Azure OpenAI deployment name"],
     num_interpretations: Annotated[int, "Number of interpretations to generate"] = 3
 ) -> QueryFormulations:
-    """
-    Generate 3-5 different search query interpretations using LLM
-    """
-    system_prompt = """You are a search query formulation expert. Generate diverse search query interpretations.
-Consider: synonyms, different phrasings, technical vs casual language, specific vs broad searches.
-Each interpretation should approach the topic from a different angle."""
+    system_prompt = ResearchAgentPrompts.FORMULATE_QUERIES_SYSTEM
 
-    user_prompt = f"""Generate {num_interpretations} different search query interpretations for:
-"{user_query}"
-
-Return a JSON object with:
-- original_query: the user's query
-- interpretations: array of {num_interpretations} objects, each with:
-  - query: the reformulated search query
-  - rationale: why this interpretation is valuable
-  - interpretation_id: unique number 0 to {num_interpretations-1}"""
+    user_prompt = ResearchAgentPrompts.FORMULATE_QUERIES_USER.format(
+        num_interpretations=num_interpretations,
+        user_query=user_query,
+        num_interpretations_minus_1=num_interpretations-1
+    )
 
     response = azure_client.chat.completions.create(
         model=deployment_name,

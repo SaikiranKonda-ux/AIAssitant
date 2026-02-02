@@ -1,6 +1,11 @@
+import sys
+from pathlib import Path
 from typing import Annotated, List
 from openai import AzureOpenAI
-from ..models.schemas import SearchResults, ClassifiedURLs, ClassifiedURL
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+from config.prompts import ResearchAgentPrompts
+from agents.research_agent.models.schemas import SearchResults, ClassifiedURLs, ClassifiedURL
 
 
 def classify_urls(
@@ -10,9 +15,6 @@ def classify_urls(
     deployment_name: Annotated[str, "Azure OpenAI deployment name"],
     max_urls: Annotated[int, "Maximum URLs to select"] = 2
 ) -> ClassifiedURLs:
-    """
-    Use LLM to classify and select the most relevant URLs from search results
-    """
     if not search_results.urls:
         return ClassifiedURLs(
             interpretation_id=search_results.interpretation_id,
@@ -23,26 +25,15 @@ def classify_urls(
     for i, url in enumerate(search_results.urls):
         urls_text += f"\n{i+1}. Title: {url.title}\n   URL: {url.url}\n   Snippet: {url.snippet}\n"
 
-    system_prompt = """You are a URL relevance classifier. Analyze search results and select the most relevant URLs.
-Score each URL 0.0-1.0 for relevance. Return empty array if none are relevant (score < 0.7).
-Select maximum {max_urls} best URLs."""
+    system_prompt = ResearchAgentPrompts.CLASSIFY_URLS_SYSTEM.format(max_urls=max_urls)
 
-    user_prompt = f"""Original query: "{original_query}"
-Search query used: "{search_results.query}"
-
-URLs to classify:
-{urls_text}
-
-Select up to {max_urls} most relevant URLs. Return JSON with:
-- interpretation_id: {search_results.interpretation_id}
-- selected: array of objects with:
-  - url: the URL
-  - title: page title
-  - relevance_score: 0.0-1.0
-  - reason: why this URL is relevant
-  - interpretation_id: {search_results.interpretation_id}
-
-Return empty selected array if no URLs meet threshold 0.7."""
+    user_prompt = ResearchAgentPrompts.CLASSIFY_URLS_USER.format(
+        original_query=original_query,
+        search_query=search_results.query,
+        urls_text=urls_text,
+        max_urls=max_urls,
+        interpretation_id=search_results.interpretation_id
+    )
 
     response = azure_client.chat.completions.create(
         model=deployment_name,

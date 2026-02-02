@@ -9,6 +9,7 @@ from openai import AzureOpenAI
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from config.azure_config import AzureOpenAIConfig
+from config.azure_client import AzureClientManager
 from agents.code_understanding_agent import CodeUnderstandingAgent
 from agents.planning_agent.models.schemas import (
     RequirementType,
@@ -29,11 +30,7 @@ class PlanningAgent:
 
         config_dict = self.config.get_client_config()
         self.deployment_name = config_dict["deployment_name"]
-        self.azure_client = AzureOpenAI(
-            api_key=config_dict["api_key"],
-            api_version=config_dict["api_version"],
-            azure_endpoint=config_dict["endpoint"]
-        )
+        self.azure_client = AzureClientManager.get_client(self.config)
 
     async def analyze_requirement(self, requirement_text, code_directory):
         print(f"\nAnalyzing requirement: {requirement_text}")
