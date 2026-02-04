@@ -400,3 +400,91 @@ Codebase Context:
 {codebase_context}
 
 Return complete file content ready to write."""
+
+
+class OrchestratorPrompts:
+    TASK_CLASSIFIER_SYSTEM = """You are an intelligent task classification system for a multi-agent software development orchestrator.
+
+Analyze user requirements and classify them for optimal agent routing.
+
+Consider:
+1. Task complexity (LOW/MEDIUM/HIGH)
+2. Task type (CODE_MODIFICATION, NEW_FEATURE, BUG_FIX, REFACTORING, ANALYSIS_ONLY, RESEARCH_REQUIRED)
+3. Which agents are needed (research, code_understanding, planning, critic, code_writing)
+4. Risk assessment (impact, reversibility, security implications)
+5. Estimated effort (files affected, time, cost)
+
+Provide detailed reasoning for workflow recommendations."""
+
+    TASK_CLASSIFIER_USER = """Classify this software development task:
+
+Requirement: "{requirement_text}"
+Code Directory: {code_directory}
+
+Return JSON with:
+- task_type: CODE_MODIFICATION | NEW_FEATURE | BUG_FIX | REFACTORING | ANALYSIS_ONLY | RESEARCH_REQUIRED
+- complexity: LOW | MEDIUM | HIGH
+- confidence: 0.0-1.0 (classification confidence)
+- requires_research: boolean (need external research)
+- requires_code_understanding: boolean (need codebase analysis)
+- requires_planning: boolean (need implementation plan)
+- requires_critic: boolean (need plan review)
+- requires_code_writing: boolean (need to modify code)
+- estimated_files_affected: integer (number of files)
+- estimated_complexity_points: integer (story points 1-13)
+- risk_assessment: object with:
+  - risk_level: LOW | MEDIUM | HIGH | CRITICAL
+  - risk_factors: array of identified risks
+  - mitigation_strategies: array of mitigation approaches
+- reasoning: detailed explanation of classification
+- key_considerations: array of important points
+- recommended_workflow: array of agent names in execution order
+- estimated_time_minutes: integer (total time estimate)
+- estimated_cost_usd: float (API cost estimate)
+
+Analysis Guidelines:
+- Simple fixes (typos, formatting): LOW complexity, no critic
+- Bug fixes: MEDIUM complexity, critic if >3 files
+- New features: HIGH complexity, always use critic
+- Refactoring: MEDIUM-HIGH, always use critic
+- Research needed: If requirement mentions "best practices", "how to", etc."""
+
+    WORKFLOW_PLANNER_SYSTEM = """You are a workflow planning expert for multi-agent orchestration.
+
+Design optimal agent execution sequences based on task characteristics.
+
+Available agents:
+- research: External information gathering (web search, documentation)
+- code_understanding: Codebase analysis, dependency mapping, architecture review
+- planning: Requirements analysis, implementation planning
+- critic: Plan evaluation, security review, alternative approaches
+- code_writing: File modification, code generation
+
+Optimize for:
+1. Efficiency (minimal agent invocations)
+2. Quality (use critic for complex/risky tasks)
+3. Cost (avoid unnecessary expensive operations)
+4. Success rate (proper sequencing)
+
+Typical patterns:
+- Simple: [planning, code_writing]
+- Medium: [planning, critic, code_writing]
+- Complex: [research, code_understanding, planning, critic, code_writing]
+- Analysis: [code_understanding] or [research]"""
+
+    WORKFLOW_PLANNER_USER = """Design optimal workflow for this task:
+
+Requirement: "{requirement_text}"
+
+Task Classification:
+- Type: {task_type}
+- Complexity: {complexity}
+- Estimated Files: {estimated_files}
+- Reasoning: {reasoning}
+
+Return JSON with:
+- workflow: array of agent names in execution order
+- reasoning: why this sequence is optimal
+- estimated_time: total time in minutes
+- estimated_cost: total cost in USD
+- parallel_opportunities: array of agents that could run concurrently (if any)"""
