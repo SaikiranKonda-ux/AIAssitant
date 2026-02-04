@@ -328,3 +328,383 @@ agents/
       └── models/
           └── schemas.py                   # Pydantic models
 ```
+
+---
+
+# Critic Agent
+
+## Pattern: Reflection with Bounded Iterations
+
+## Installation
+
+Included with core dependencies.
+
+## Usage
+
+```python
+import asyncio
+from agents.critic_agent import CriticAgent
+from agents.planning_agent import PlanningAgent
+
+async def main():
+    planning_agent = PlanningAgent()
+    critic_agent = CriticAgent(max_iterations=2)
+
+    plan = await planning_agent.analyze_requirement(
+        requirement_text="Add OAuth authentication",
+        code_directory="/path/to/project"
+    )
+
+    refined_plan, critiques = await critic_agent.review(
+        implementation_plan=plan,
+        codebase_context=None,
+        auto_refine=False
+    )
+
+    print(f"Assessment: {critiques[-1].overall_assessment.value}")
+    print(f"Concerns: {len(critiques[-1].concerns)}")
+
+asyncio.run(main())
+```
+
+## Pattern: Reflection (Max 2-3 Iterations)
+
+### PHASE 1: Evaluation
+```
+1. evaluate_plan(): LLM analyzes implementation plan
+   - Feasibility, completeness, security (OWASP)
+   - Performance, best practices, error handling
+   - Testing, rollback capability
+   - Returns CritiqueFeedback
+```
+
+### PHASE 2: Decision
+```
+2. Assessment Levels:
+   - APPROVED: Plan is good, proceed
+   - NEEDS_REVISION: Issues found, should refine
+   - MAJOR_CONCERNS: Critical problems, must address
+
+3. If APPROVED or max_iterations reached → Return
+   Otherwise → Continue to Refinement
+```
+
+### PHASE 3: Refinement (Optional)
+```
+4. HITL: User decides whether to refine
+5. refine_plan(): LLM improves plan based on critique
+6. Loop back to PHASE 1 (max 2-3 iterations)
+```
+
+## Conditional Activation
+
+```python
+should_trigger = critic_agent.should_trigger_critique(plan)
+
+# Triggers if:
+# - Complexity: MEDIUM or HIGH
+# - Affected files: > 5
+# - Risks: > 3
+```
+
+## Output: CritiqueFeedback
+
+- overall_assessment: APPROVED/NEEDS_REVISION/MAJOR_CONCERNS
+- confidence_score: 0.0-1.0
+- strengths: Positive aspects
+- concerns: Issues with severity (LOW/MEDIUM/HIGH/CRITICAL)
+- alternative_approaches: Different solutions with pros/cons
+- security_issues: OWASP vulnerabilities
+- performance_concerns: Scalability issues
+- recommended_changes: Specific improvements
+
+---
+
+# Code Writing Agent
+
+## Pattern: Executor with Safety Mechanisms
+
+## Installation
+
+Included with core dependencies.
+
+## Usage
+
+```python
+import asyncio
+from agents.code_writing_agent import CodeWritingAgent
+from agents.planning_agent import PlanningAgent
+
+async def main():
+    planning_agent = PlanningAgent()
+    code_agent = CodeWritingAgent(code_directory="/path/to/project")
+
+    plan = await planning_agent.analyze_requirement(
+        requirement_text="Add logging middleware",
+        code_directory="/path/to/project"
+    )
+
+    code_change = await code_agent.execute_plan(
+        implementation_plan=plan,
+        interactive=True,
+        auto_commit=False
+    )
+
+    print(code_change.summarize())
+
+asyncio.run(main())
+```
+
+## Safety Layers
+
+### 1. Backup Before Modification
+```
+BackupManager:
+- create_backup(): Copy with timestamp + MD5 checksum
+- Stores in .code_agent_backups/
+- restore_from_backup(): Verified restoration
+```
+
+### 2. Syntax Validation
+```
+SyntaxValidator:
+- validate_python(): AST parsing
+- validate_json(): JSON parsing
+- validate_by_extension(): Route by file type
+- Pre-write validation prevents invalid code
+```
+
+### 3. User Approval (HITL)
+```
+Interactive Mode:
+- Show file preview (first 500 chars)
+- Display syntax errors if any
+- Explicit yes/no for each file
+- Only apply if all approved
+```
+
+### 4. Git Integration
+```
+GitIntegration:
+- stage_files(): Add to git
+- commit(): Create commit with SHA
+- rollback_to_commit(): Full rollback
+- Rollback available if committed
+```
+
+## Execution Flow
+
+1. prepare_modification(): For each file
+   - Create backup (MODIFY/DELETE only)
+   - Validate syntax
+   - Return FileModification object
+
+2. HITL Approval Loop (interactive mode)
+   - Show diff and preview
+   - User approves each file
+
+3. apply_modification(): Execute changes
+   - Write files
+   - Track created/modified/deleted counts
+   - Auto-rollback on error
+
+4. Git Commit (optional)
+   - HITL: User chooses whether to commit
+   - Auto-commit mode available
+   - Returns commit SHA for rollback
+
+## Rollback
+
+```python
+# Git-based rollback (preferred)
+success = code_agent.rollback(code_change)
+
+# File-based rollback (fallback)
+# Automatically attempts if git rollback fails
+```
+
+---
+
+# Orchestrator Manager
+
+## Pattern: Magentic-Inspired with Conditional Routing
+
+## Installation
+
+Included with core dependencies.
+
+## Usage
+
+```python
+import asyncio
+from orchestrator import OrchestratorManager
+
+async def main():
+    orchestrator = OrchestratorManager(
+        max_rounds=10,
+        max_stalls=3
+    )
+
+    result = await orchestrator.execute(
+        user_requirement="Add user authentication with JWT tokens",
+        code_directory="/path/to/project",
+        interactive=True
+    )
+
+    print(f"Final State: {result.workflow_state.value}")
+    print(f"Total Rounds: {result.round_count}")
+    print(result.final_output)
+
+asyncio.run(main())
+```
+
+## Orchestration Flow
+
+### PHASE 1: Task Classification
+```
+1. classify_task(): LLM analyzes requirement
+   - Returns: task_type, complexity, risk, agent needs
+   - Confidence scoring (0.0-1.0)
+```
+
+### PHASE 2: Workflow Planning
+```
+2. plan_workflow_hybrid(): Conditional routing
+   
+   Rule-Based (80% of cases):
+   - HIGH confidence + LOW complexity
+   - Fast, deterministic
+   - Example: [planning, code_writing]
+   
+   LLM-Based (20% of cases):
+   - LOW confidence or HIGH complexity
+   - Flexible, intelligent
+   - Example: [research, code_understanding, planning, critic, code_writing]
+```
+
+### PHASE 3: Cost Estimation & Approval
+```
+3. estimate_task_cost(): Calculate time/cost
+4. HITL: User approves workflow (interactive mode)
+```
+
+### PHASE 4: Workflow Execution
+```
+5. For each agent in workflow:
+   a. Start agent invocation tracking
+   b. Execute agent with shared context
+   c. Update shared context with results
+   d. Check for stall
+   e. HITL intervention if stalled (interactive mode)
+```
+
+### PHASE 5: Completion
+```
+6. Set final state (COMPLETED or FAILED)
+7. Generate final output summary
+```
+
+## Conditional Routing Examples
+
+**Simple (LOW complexity):**
+```
+Workflow: [planning, code_writing]
+Time: 5 min
+Cost: $0.18
+```
+
+**Medium (MEDIUM complexity):**
+```
+Workflow: [planning, critic, code_writing]
+Time: 10 min
+Cost: $0.30
+```
+
+**Complex (HIGH complexity or NEW_FEATURE):**
+```
+Workflow: [research, code_understanding, planning, critic, code_writing]
+Time: 15 min
+Cost: $0.70
+```
+
+## Stall Detection
+
+```
+StallDetector checks for:
+1. Max stalls limit (default 3)
+2. Consecutive agent failures (2+ in last 3)
+3. Workflow state repetition (≥5 iterations)
+4. Lack of progress (no outputs generated)
+
+Recovery Actions (HITL):
+- Continue: Ignore stall, proceed
+- Skip: Skip current agent
+- Retry: Re-run failed agent
+- Abort: Terminate workflow
+```
+
+## Shared Context
+
+State passed between all agents:
+- requirement_text, code_directory
+- task_classification
+- research_findings, codebase_context
+- implementation_plan, critique_feedback
+- code_changes
+- conversation_history
+- agent_invocations
+- workflow_state, round_count, stall_count
+
+## File Structure
+
+```
+orchestrator/
+  ├── manager.py              # Main orchestrator
+  ├── models/
+  │   └── task_classification.py
+  └── tools/
+      ├── task_classifier.py
+      ├── workflow_planner.py
+      ├── cost_estimator.py
+      ├── stall_detector.py
+      └── hitl_gates.py
+```
+
+---
+
+# Complete Workflow Example
+
+```python
+import asyncio
+from orchestrator import OrchestratorManager
+
+async def main():
+    orchestrator = OrchestratorManager(max_rounds=10, max_stalls=3)
+    
+    result = await orchestrator.execute(
+        user_requirement="Add rate limiting middleware to prevent API abuse",
+        code_directory="/path/to/my/api/project",
+        interactive=True
+    )
+    
+    if result.workflow_state.value == "COMPLETED":
+        print("Success!")
+        print(f"Agents used: {[inv.agent_name for inv in result.agent_invocations]}")
+        print(f"Total cost: ${result.estimated_cost:.2f}")
+        print(result.final_output)
+    else:
+        print(f"Failed: {result.current_step}")
+
+asyncio.run(main())
+```
+
+**Expected Flow:**
+1. Classify task → MEDIUM complexity, CODE_MODIFICATION
+2. Plan workflow → [planning, critic, code_writing]
+3. User approves workflow
+4. Planning Agent → Creates implementation plan
+5. Critic Agent → Reviews plan (2 iterations, refined)
+6. User approves refined plan
+7. Code Writing Agent → Modifies files with HITL approval
+8. Git commit → User approves commit
+9. Complete → Returns CodeChange summary

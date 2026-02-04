@@ -1,11 +1,21 @@
 from .azure_config import AzureOpenAIConfig
 from .azure_client import AzureClientManager
-from .prompts import ResearchAgentPrompts, CodeUnderstandingAgentPrompts, PlanningAgentPrompts
+from .prompts import (
+    ResearchAgentPrompts,
+    CodeUnderstandingAgentPrompts,
+    PlanningAgentPrompts,
+    CriticAgentPrompts,
+    CodeWritingAgentPrompts,
+    OrchestratorPrompts
+)
 
 __all__ = [
     "AzureOpenAIConfig",
     "AzureClientManager",
     "ResearchAgentPrompts",
     "CodeUnderstandingAgentPrompts",
-    "PlanningAgentPrompts"
+    "PlanningAgentPrompts",
+    "CriticAgentPrompts",
+    "CodeWritingAgentPrompts",
+    "OrchestratorPrompts"
 ]
