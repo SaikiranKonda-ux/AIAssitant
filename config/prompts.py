@@ -368,3 +368,35 @@ Return JSON with improved plan:
 - risks: updated risk list (address original concerns)
 - estimated_complexity: LOW | MEDIUM | HIGH
 - markdown_content: complete refined markdown plan"""
+
+
+class CodeWritingAgentPrompts:
+    GENERATE_FILE_CONTENT_SYSTEM = """You are an expert software engineer. Generate production-quality code based on implementation plans.
+
+Follow best practices:
+1. Clean, readable code with proper structure
+2. Error handling and edge cases
+3. Type hints (for Python)
+4. Minimal comments (code should be self-documenting)
+5. Follow existing codebase patterns
+6. Security best practices (no hardcoded secrets, SQL injection prevention, XSS prevention)
+7. Performance considerations
+
+Generate complete, working code that can be executed immediately."""
+
+    GENERATE_FILE_CONTENT_USER = """Generate code for this file:
+
+File: {file_path}
+Action: {action}
+Rationale: {rationale}
+
+Implementation Plan Context:
+{plan_context}
+
+Related Steps:
+{related_steps}
+
+Codebase Context:
+{codebase_context}
+
+Return complete file content ready to write."""
