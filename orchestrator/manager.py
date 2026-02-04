@@ -8,7 +8,7 @@ from config.azure_config import AzureOpenAIConfig
 from config.azure_client import AzureClientManager
 from models.shared_context import SharedContext, WorkflowState, MessageRole
 from orchestrator.models.task_classification import TaskClassification
-from orchestrator.tools import classify_task, plan_workflow_hybrid, estimate_task_cost, format_cost_estimate
+from orchestrator.tools import classify_task, plan_workflow_hybrid, estimate_task_cost, format_cost_estimate, StallDetector, HITLGates
 
 from agents.research_agent import ResearchAgent
 from agents.code_understanding_agent import CodeUnderstandingAgent
@@ -32,6 +32,8 @@ class OrchestratorManager:
         self.deployment_name = config_dict["deployment_name"]
         self.azure_client = AzureClientManager.get_client(self.config)
 
+        self.stall_detector = StallDetector(max_stalls=max_stalls)
+        self.hitl_gates = HITLGates()
         self.agents = {}
 
     def _initialize_agents(self, code_directory: str):
@@ -151,6 +153,30 @@ class OrchestratorManager:
                     error_msg
                 )
                 break
+
+            is_stalled, stall_reason = self.stall_detector.check_for_stall(shared_context)
+
+            if is_stalled:
+                print(f"\n⚠ Stall detected: {stall_reason}")
+                shared_context.increment_stall()
+                shared_context.update_state(WorkflowState.STALLED, stall_reason)
+
+                if interactive:
+                    action = self.hitl_gates.request_stall_intervention(shared_context, stall_reason)
+
+                    if action == "abort":
+                        shared_context.update_state(WorkflowState.FAILED, "User aborted after stall")
+                        break
+                    elif action == "skip":
+                        print(f"Skipping {step_name}")
+                        continue
+                    elif action == "continue":
+                        print(f"Continuing despite stall")
+                        shared_context.update_state(WorkflowState.CLASSIFYING, "Resuming after stall")
+                else:
+                    print("Non-interactive mode: Aborting on stall")
+                    shared_context.update_state(WorkflowState.FAILED, f"Stalled: {stall_reason}")
+                    break
 
         if shared_context.workflow_state != WorkflowState.FAILED:
             shared_context.update_state(
