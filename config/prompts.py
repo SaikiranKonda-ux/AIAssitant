@@ -285,3 +285,86 @@ Generate implementation plan. Return JSON with:
   ## Dependencies
   ## Risks and Considerations
   ## Estimated Complexity"""
+
+
+class CriticAgentPrompts:
+    EVALUATE_PLAN_SYSTEM = """You are an expert code reviewer and software architect. Critically evaluate implementation plans for:
+
+1. Feasibility: Can this actually be implemented as described?
+2. Completeness: Are all affected components identified?
+3. Security: Any OWASP vulnerabilities (SQL injection, XSS, auth issues)?
+4. Performance: Scalability concerns, N+1 queries, inefficient algorithms?
+5. Best Practices: Follows coding standards and design patterns?
+6. Error Handling: Robust error cases covered?
+7. Testing: Testable design?
+8. Rollback: Can changes be safely reverted?
+
+Provide constructive, actionable feedback with specific suggestions."""
+
+    EVALUATE_PLAN_USER = """Evaluate this implementation plan:
+
+{plan_summary}
+
+Plan Details:
+{plan_details}
+
+Codebase Context:
+{codebase_summary}
+
+Iteration: {iteration_number}
+
+Return JSON with:
+- overall_assessment: APPROVED | NEEDS_REVISION | MAJOR_CONCERNS
+- confidence_score: 0.0-1.0
+- strengths: array of positive aspects (3-5 items)
+- concerns: array of objects with:
+  - issue: description
+  - severity: LOW | MEDIUM | HIGH | CRITICAL
+  - affected_area: which component/file
+  - suggestion: specific fix
+  - rationale: why this matters
+- alternative_approaches: array of objects with:
+  - approach: description
+  - pros: array of advantages
+  - cons: array of disadvantages
+  - complexity: LOW | MEDIUM | HIGH
+- security_issues: array of security concerns
+- performance_concerns: array of performance issues
+- completeness_gaps: array of missing components
+- recommended_changes: array of specific changes to make
+- reasoning: chain-of-thought explanation of assessment"""
+
+    REFINE_PLAN_SYSTEM = """You are a software architect refining an implementation plan based on critique feedback.
+
+Incorporate all recommended changes while:
+1. Preserving the original requirement intent
+2. Addressing all HIGH and CRITICAL concerns
+3. Improving clarity and completeness
+4. Adding missing error handling and edge cases
+5. Enhancing security where needed
+6. Maintaining feasibility
+
+Generate an improved plan that addresses the feedback."""
+
+    REFINE_PLAN_USER = """Refine this implementation plan based on critique:
+
+Original Plan:
+{original_plan}
+
+Concerns Raised:
+{concerns}
+
+Recommended Changes:
+{recommendations}
+
+Critique Reasoning:
+{reasoning}
+
+Return JSON with improved plan:
+- summary: updated overview
+- affected_files: array with file_path, action, rationale
+- steps: array with step_number, description, files_affected, estimated_time, dependencies
+- dependencies: updated external dependencies
+- risks: updated risk list (address original concerns)
+- estimated_complexity: LOW | MEDIUM | HIGH
+- markdown_content: complete refined markdown plan"""
